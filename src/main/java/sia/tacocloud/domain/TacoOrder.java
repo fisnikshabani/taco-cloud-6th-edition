@@ -15,6 +15,7 @@ import java.util.List;
 
 @Data
 @Entity
+@Table(name = "Taco_Order")
 public class TacoOrder implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -52,6 +53,9 @@ public class TacoOrder implements Serializable {
 
     @OneToMany(cascade = CascadeType.ALL)
     private List<Taco> tacos = new ArrayList<>();
+
+    @ManyToOne //an order belongs to a single user, and conversely, that a user may have many orders.
+    private User user;
 
     //method for adding tacos to the order
     public void addTaco(Taco taco){
