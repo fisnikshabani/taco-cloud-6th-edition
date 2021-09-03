@@ -11,7 +11,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
-import sia.tacocloud.repositories.UserRepository;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,7 +46,7 @@ public class SecurityConfig {
                 .and()
                 .formLogin()
                 .loginPage("/login") //tell Spring Security what path your custom login page will be at.
-                .defaultSuccessUrl("/design",true)
+                .defaultSuccessUrl("/design", true)
 
                 .and()
                 .logout()
