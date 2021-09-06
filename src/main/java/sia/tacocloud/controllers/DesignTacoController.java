@@ -1,83 +1,58 @@
 package sia.tacocloud.controllers;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.Errors;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sia.tacocloud.domain.Ingredient;
 import sia.tacocloud.domain.Taco;
-import sia.tacocloud.repositories.IngredientRepository;
+import sia.tacocloud.repositories.TacoRepository;
 
-import javax.validation.Valid;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Slf4j
-@Controller
-@RequestMapping("/design")
-@SessionAttributes("tacoOrder")
+@RestController
+@RequestMapping(value = "/design", produces = "application/json")
+@CrossOrigin(origins = "*")
 public class DesignTacoController {
 
+    private TacoRepository tacoRepository;
 
-    private final IngredientRepository ingredientRepository;
-
-    @Autowired
-    public DesignTacoController(IngredientRepository ingredientRepository) {
-        this.ingredientRepository = ingredientRepository;
+    public DesignTacoController(TacoRepository tacoRepository) {
+        this.tacoRepository = tacoRepository;
     }
 
-    @ModelAttribute
-    public void addIngredientsToModel(Model model) {
+    @GetMapping("/recent")
+    public Iterable<Taco> recentTacos(){
 
-        Iterable<Ingredient> ingredients = ingredientRepository.findAll();
-        Ingredient.Type[] types = Ingredient.Type.values();
-        for (Ingredient.Type type : types) {
-            model.addAttribute(type.toString().toLowerCase(),
-                    filterByType((List<Ingredient>) ingredients, type));
+        PageRequest page = PageRequest.of(0,12, Sort.by("createdAt").descending());
+
+        return tacoRepository.findAll(page).getContent();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Taco> tacoById(@PathVariable("id") Long id){
+        Optional<Taco> optionalTaco = tacoRepository.findById(id);
+        if(optionalTaco.isPresent()) {
+            return new ResponseEntity<>(optionalTaco.get(), HttpStatus.OK);
         }
-
-        //from chapter 2
-       /*List<Ingredient> ingredients = Arrays.asList(
-                new Ingredient("FLTO", "Flour Tortilla", Ingredient.Type.WRAP),
-                new Ingredient("COTO", "Corn Tortilla", Ingredient.Type.WRAP),
-                new Ingredient("GRBF", "Ground Beef", Ingredient.Type.PROTEIN),
-                new Ingredient("CARN", "Carnitas", Ingredient.Type.PROTEIN),
-                new Ingredient("TMTO", "Diced Tomatoes", Ingredient.Type.VEGGIES),
-                new Ingredient("LETC", "Lettuce", Ingredient.Type.VEGGIES),
-                new Ingredient("CHED", "Cheddar", Ingredient.Type.CHEESE),
-                new Ingredient("JACK", "Monterrey Jack", Ingredient.Type.CHEESE),
-                new Ingredient("SLSA", "Salsa", Ingredient.Type.SAUCE),
-                new Ingredient("SRCR", "Sour Cream", Ingredient.Type.SAUCE)
-       );        */
+        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
     }
 
-    @GetMapping
-    public String showDesignForm(Model model) {
-        model.addAttribute("design", new Taco());
-        return "design";
-    }
-    @PostMapping
-    public String processTaco(@Valid @ModelAttribute("taco") Taco taco, Errors errors) {
-        if (errors.hasErrors()) {
-            return "redirect:/design";
-        }
-
-        // Save the taco...
-        // We'll do this in chapter 3
-        log.info("Processing taco: " + taco);
-
-        return "redirect:/orders/current";
+    @PostMapping (consumes = "application/json")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Taco postTaco(@RequestBody Taco taco){
+        return tacoRepository.save(taco);
     }
 
+    @DeleteMapping("/{orderId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteOrder(@PathVariable("orderId") Long orderId){
+        try {
+            tacoRepository.deleteById(orderId);
+        } catch (EmptyResultDataAccessException e){}
 
-    private Iterable<Ingredient> filterByType(
-            List<Ingredient> ingredients, Ingredient.Type type) {
-        return ingredients
-                .stream()
-                .filter(x -> x.getType().equals(type))
-                .collect(Collectors.toList());
     }
 }
